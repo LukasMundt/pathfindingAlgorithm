@@ -74,23 +74,81 @@
 (last (car (sort paths #:key last <)))
 )
 
-(define (dijkstra currentNode ziel liste [currentWeight 0] [nodes '()] [markedPaths '()])
+(define (printResult nodes weight [result "Der Pfad "])
 (cond
-  ((equal? ziel currentNode) (append nodes (list currentNode)))
-  (else (dijkstra
-  ; currentNode
-  (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
-  ; ziel
-  ziel
-  ; liste
-  liste
-  ; currentWeight
-  (getWeightOfSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
-  ; nodes
-  (append nodes (list currentNode))
-  ))
+((empty? nodes) (string-append result " ist mit einem Gewicht von " (number->string weight) " der leichteste Pfad."))
+((empty? (cdr nodes)) (printResult (cdr nodes) weight (string-append result (car nodes))))
+(else (printResult (cdr nodes) weight (string-append result (car nodes) "->")))
+)
 )
 
-)
-(define liste '((0 "A" 2)(0 "A" 3)("A" 1 3)("A" "B" 2)("B" 2 1)("B" "C" 4)("C" 3 3)))
-(dijkstra "A" "D" '(("A" "B" 1)("A" "B" 3)("A" "C" 3)("B" "C" 2)("B" "D" 4)("C" "D" 1)))
+(define (dijkstra currentNode ziel liste [currentWeight 0] [nodes '()] [markedPaths '()] [result '()])
+(display result)
+(display "\n")
+(cond
+  ((equal? ziel currentNode) (printResult (append nodes (list currentNode)) currentWeight))
+  (else (dijkstra
+    ; currentNode
+    (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
+    ; ziel
+    ziel
+    ; liste
+    liste
+    ; currentWeight
+    (getWeightOfSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
+    ; nodes
+    (append nodes (list currentNode))
+    ; markedPaths
+    (cdr (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
+    ; result
+    (sort (append result (list (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)))) #:key last <)
+  ))
+))
+
+(define (dijkstra2 currentNode ziel liste [currentWeight 0] [nodes '()] [markedPaths '()] [previous ""])
+(display "   ")
+(display currentWeight)
+(display "   |    ")
+(display currentNode)
+(display "    |   ")
+(display (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes)))
+(display "   | ")
+; (display (or (equal? previous "")))
+(display (not (containsNode (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)) previous)))
+; (display previous)
+(display " | ")
+(display nodes)
+(display " | ")
+(display (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
+(display "\n")
+(cond
+  ((equal? ziel currentNode) (list currentNode currentWeight))
+  (else (append 
+    (list currentNode)
+    (dijkstra2
+      ; currentNode
+      (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
+      ; ziel
+      ziel
+      ; liste
+      liste
+      ; currentWeight
+      (getWeightOfSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
+      ; nodes
+      (append nodes (list currentNode))
+      ; markedPaths
+      (cdr (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
+      ; previous
+      currentNode
+    )))
+))
+
+(define graph1 '(("A" "B" 1)("A" "B" 3)("A" "C" 3)("B" "C" 2)("B" "D" 4)("C" "D" 1)))
+(define graph2 '(("S" "A" 7)("S" "B" 2)("S" "C" 3)("A" "B" 3)("A" "D" 4)("D" "B" 4)("D" "F" 5)("F" "H" 3)("B" "H" 1)("H" "G" 2)("G" "E" 2)("K" "E" 5)("I" "K" 4)("J" "K" 4)("I" "J" 6)("L" "J" 4)("L" "I" 4)("C" "L" 2)))
+(display "weight | current | next  | markedPaths\n")
+(dijkstra2 "S" "L" graph2)
+; (define (executeDijkstra start ziel liste)
+; (reverse (cdr (reverse (dijkstra2 start ziel liste))))
+; (dijkstra2 start ziel liste)
+; )
+; (executeDijkstra "S" "H" graph2)
