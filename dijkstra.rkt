@@ -13,6 +13,10 @@
     ))
   )
 
+  (define (roundDecimal number nachKommastellen)
+  (string->number (real->decimal-string number 1))
+  )
+
 ; Gibt alle Kanten zurück, die den übergebenen Knoten beinhalten.
 (define (pathsWithNode liste node [endlist '()])
   (if
@@ -30,7 +34,7 @@
 (define (updateWeightNeighborNodes paths weightCurrentNode [result '()])
 (cond
 ((equal? paths '()) result)
-(else (updateWeightNeighborNodes (cdr paths) weightCurrentNode (append result (list (reverse (append (list (+ (last (car paths)) weightCurrentNode)) (cdr (reverse (car paths)))))))))
+(else (updateWeightNeighborNodes (cdr paths) weightCurrentNode (append result (list (reverse (append (list (roundDecimal (+ (last (car paths)) weightCurrentNode) 1)) (cdr (reverse (car paths)))))))))
 )
 )
 
@@ -90,9 +94,15 @@
 ; allerdings ein "Gewicht" von 2 und 5. Dabei entspricht das "Gewicht" der Kante (a,e) dem Pfadgewicht von dem Punkt s bis e. Dieser Prozess wird in dieser Funktion genutzt und umgekehrt.
 ; Damit diese Funktion fehlerfrei funktioniert dürfen nicht mehrere Kanten die gleichen Knoten miteinander verbinden.
 (define (getRoute graph start current startGraph [weight 0] [result '()])
+(display weight)
+(display " | ")
+(display result)
+(display " | ")
+(display graph)
+(display "\n")
   (cond
   ((empty? graph) result)
-  ((and (containsNode (car graph) current) (equal? weight (last (car graph)))) (getRoute (cdr graph) start (getSmallestUnvisitedNode (list current) (list (car graph))) startGraph (- weight (last (getPathWithTwoNodes startGraph (caar graph) (cadar graph)))) (append result (list (getPathWithTwoNodes startGraph (caar graph) (cadar graph))))))
+  ((and (containsNode (car graph) current) (equal? weight (last (car graph)))) (getRoute (cdr graph) start (getSmallestUnvisitedNode (list current) (list (car graph))) startGraph (roundDecimal (- weight (last (getPathWithTwoNodes startGraph (caar graph) (cadar graph)))) 1) (append result (list (getPathWithTwoNodes startGraph (caar graph) (cadar graph))))))
   ((number? (last graph)) (getRoute (cdr (reverse graph)) start current startGraph (last graph)))
   (else (getRoute (cdr graph) start current startGraph weight result))
 ))
@@ -149,4 +159,6 @@
 
 (define graph1 '(("A" "B" 1)("A" "B" 3)("A" "C" 3)("B" "C" 2)("B" "D" 4)("C" "D" 1)))
 (define graph2 '(("S" "A" 7)("S" "B" 2)("S" "C" 3)("A" "B" 3)("A" "D" 4)("D" "B" 4)("D" "F" 5)("F" "H" 3)("B" "H" 1)("H" "G" 2)("G" "E" 2)("K" "E" 5)("I" "K" 4)("J" "K" 4)("I" "J" 6)("L" "J" 4)("L" "I" 4)("C" "L" 2)))
-(executeDijkstra "E" "S" graph2)
+; Der Graph3 entspricht dem Beispielgraphen aus "Abenteuer Geschichte" von J. Gallenbacher.
+(define graph3 '(("M" "A" 6.7)("M" "X" 2.3)("M" "C" 5.6)("M" "I" 9.0)("C" "I" 8.2)("C" "X" 4.6)("A" "D" 6.6)("A" "N" 3.8)("A" "B" 14.3)("X" "N" 6.4)("N" "D" 4.1)("I" "B" 7)("B" "D" 13)("N" "Z" 5.8)("D" "L" 18.9)("B" "Z" 6.2)("Z" "L" 7.8)("I" "H" 13.4)("I" "P" 10.5)("B" "H" 5.6)("P" "H" 7.1)("H" "L" 21.1)("Z" "Y" 4.5)("H" "Y" 5.9)("Y" "G" 5.5)("L" "G" 11.8)("P" "K" 5.1)("H" "K" 6)("Y" "K" 3.6)("K" "G" 11.5)("P" "F" 11.6)("K" "F" 6.1)("K" "E" 6.2)("G" "E" 12.1)("O" "E" 19.5)("F" "E" 15.6)("P" "O" 18.2)("Q" "O" 5.3)("F" "O" 2.9)))
+(executeDijkstra "Q" "E" graph3)
