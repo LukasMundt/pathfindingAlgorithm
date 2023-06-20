@@ -26,6 +26,7 @@
    )
   )
 
+; Diese Funktion erhöht das Gewicht aller Kanten zu Nachbarknoten um das Gewicht des aktuellen Knoten.
 (define (updateWeightNeighborNodes paths weightCurrentNode [result '()])
 (cond
 ((equal? paths '()) result)
@@ -82,49 +83,40 @@
 )
 )
 
-(define (dijkstra currentNode ziel liste [currentWeight 0] [nodes '()] [markedPaths '()] [result '()])
-(display result)
-(display "\n")
-(cond
-  ((equal? ziel currentNode) (printResult (append nodes (list currentNode)) currentWeight))
-  (else (dijkstra
-    ; currentNode
-    (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
-    ; ziel
-    ziel
-    ; liste
-    liste
-    ; currentWeight
-    (getWeightOfSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
-    ; nodes
-    (append nodes (list currentNode))
-    ; markedPaths
-    (cdr (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
-    ; result
-    (sort (append result (list (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)))) #:key last <)
-  ))
+; Diese Funktion extrahiert aus der Ausgabe der dijkstra-Funktion den tatsächlichen Pfad von dem Start zum Ziel heraus. Dazu wird am Ende begonnen. Der Parameter weight entspricht 
+; zu Beginn dem Gewicht des gesamten Pfades von Start bis Ziel. Es wird nach dem Pfad gesucht, der den Endknoten beinhaltet und außerdem das Gewicht im Funktionsparameter weight aufweist.
+; In dem Ergebnis der dijkstra-Funktion entspricht das Gewicht einer Kante immer dem Gesamtgewicht des Pfades vom Start bis zu dem jeweiligen Knoten. Beispiel: Zwei Pfade verbinden den 
+; Startpunkt s und den Endpunkt e, der Knoten dazwischen heißt a. Nun haben die Kanten (s,a) und (a,e) ein Gewicht von 2 und 3. In der Ausgabe der dijkstra-Funktion haben diese beiden Kanten
+; allerdings ein "Gewicht" von 2 und 5. Dabei entspricht das "Gewicht" der Kante (a,e) dem Pfadgewicht von dem Punkt s bis e. Dieser Prozess wird in dieser Funktion genutzt und umgekehrt.
+; Damit diese Funktion fehlerfrei funktioniert dürfen nicht mehrere Kanten die gleichen Knoten miteinander verbinden.
+(define (getRoute graph start current startGraph [weight 0] [result '()])
+  (cond
+  ((empty? graph) result)
+  ((and (containsNode (car graph) current) (equal? weight (last (car graph)))) (getRoute (cdr graph) start (getSmallestUnvisitedNode (list current) (list (car graph))) startGraph (- weight (last (getPathWithTwoNodes startGraph (caar graph) (cadar graph)))) (append result (list (getPathWithTwoNodes startGraph (caar graph) (cadar graph))))))
+  ((number? (last graph)) (getRoute (cdr (reverse graph)) start current startGraph (last graph)))
+  (else (getRoute (cdr graph) start current startGraph weight result))
 ))
 
 (define (dijkstra2 currentNode ziel liste [currentWeight 0] [nodes '()] [markedPaths '()] [previous ""])
-(display "   ")
-(display currentWeight)
-(display "   |    ")
-(display currentNode)
-(display "    |   ")
-(display (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes)))
-(display "   | ")
-; (display (or (equal? previous "")))
-(display (not (containsNode (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)) previous)))
-; (display previous)
-(display " | ")
-(display nodes)
-(display " | ")
-(display (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
-(display "\n")
+; (display "   ")
+; (display currentWeight)
+; (display "   |    ")
+; (display currentNode)
+; (display "    |   ")
+; (display (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes)))
+; (display "   | ")
+; ; (display (or (equal? previous "")))
+; (display (not (containsNode (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)) previous)))
+; ; (display previous)
+; (display " | ")
+; (display nodes)
+; (display " | ")
+; (display (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
+; (display "\n")
 (cond
-  ((equal? ziel currentNode) (list currentNode currentWeight))
+  ((equal? ziel currentNode) (list (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)) currentWeight))
   (else (append 
-    (list currentNode)
+    (list (car (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <)))
     (dijkstra2
       ; currentNode
       (getSmallestUnvisitedNode (append (list currentNode) nodes) (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes))
@@ -140,15 +132,21 @@
       (cdr (sort (addBestPaths markedPaths (updateWeightNeighborNodes (pathsWithNode liste currentNode) currentWeight) nodes) #:key last <))
       ; previous
       currentNode
-    )))
+    ))
+    )
+))
+; (display "weight | current | next  | markedPaths\n")
+
+; Dies ist die Aufruffunktion für die dijkstra-Funktion. Indem noch die Funktion getRoute aufgerufen wird kann der genaue Pfad vom Start bis zum Ziel aus der Ausgabe der dijkstra-
+; Funktion extrahiert werden. Die Ausgabe der dijkstra-Funktion wird in dieser Funktion über umwege verwendet. Dies liegt daran, dass diese Ausgabe an verschiedenen Stellen in dieser
+; Funktion genutzt wird. Es ist effizienter diese Ausgabe durch einen rekursiven Aufruf in den Parametern zu speichern als jedes mal die komplette dijkstra-Funktion auszuführen.
+(define (executeDijkstra start ziel graph [editedGraph '()])
+(if (not(empty? editedGraph))(display (string-append "Der untenstehende Pfad hat mit einem Gewicht von " (number->string (last editedGraph)) " das geringste Gewicht.\n")) (display ""))
+(cond
+((empty? editedGraph) (executeDijkstra start ziel graph (dijkstra2 start ziel graph)))
+(else (reverse (getRoute editedGraph start ziel graph)))
 ))
 
 (define graph1 '(("A" "B" 1)("A" "B" 3)("A" "C" 3)("B" "C" 2)("B" "D" 4)("C" "D" 1)))
 (define graph2 '(("S" "A" 7)("S" "B" 2)("S" "C" 3)("A" "B" 3)("A" "D" 4)("D" "B" 4)("D" "F" 5)("F" "H" 3)("B" "H" 1)("H" "G" 2)("G" "E" 2)("K" "E" 5)("I" "K" 4)("J" "K" 4)("I" "J" 6)("L" "J" 4)("L" "I" 4)("C" "L" 2)))
-(display "weight | current | next  | markedPaths\n")
-(dijkstra2 "S" "L" graph2)
-; (define (executeDijkstra start ziel liste)
-; (reverse (cdr (reverse (dijkstra2 start ziel liste))))
-; (dijkstra2 start ziel liste)
-; )
-; (executeDijkstra "S" "H" graph2)
+(executeDijkstra "E" "S" graph2)
